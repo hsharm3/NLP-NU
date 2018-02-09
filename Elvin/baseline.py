@@ -1,8 +1,8 @@
-#Date: 2/6
-#Version: 1.0
+#Date: 2/8
+#Version: 1.1
+# Add evaluation metric and also split textual and intuitive classfication
 
 import numpy as np  # linear algebra
-import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
 import math  
 import nltk
 import scipy
@@ -38,8 +38,24 @@ def two2one(two_d):
 		one_d.append(temp)	
 	return one_d
 
+def testreshape(train,test):
+	temp_test_x = test_x.toarray()
+	temp_test_x = temp_test_x.tolist()
+	print(len(temp_test_x),len(temp_test_x[0]))
+	for row in temp_test_x:
+		for i in range(len(train[0]) - len(test[0])):
+			row.append(0)
+	print(len(temp_test_x),len(temp_test_x[0]))
+	test_x = scipy.sparse.csr_matrix(temp_test_x)
+	return test_x
 
-
+def get_accuracy(predict, groundtruth):
+	count = 0
+	for i in range(len(predict)):
+		if predict[i] == groundtruth[i]:
+			count += 1
+	accuracy = count*1.0/len(predict)
+	return accuracy
 
 #read a file
 file = open("ObesitySen1")
@@ -47,8 +63,8 @@ file_train = open("train_groundtruth.xml")
 file_test = open("test_groundtruth.xml")
 try:
 	all_text = file.read()
-	all_train = file_train.readlines()
-	all_test = file_test.readlines()
+	train_truth = file_train.readlines()
+	test_truth = file_test.readlines()
 finally:
 	file.close()
 	file_train.close()
@@ -65,74 +81,91 @@ for i in range(len(text)):
 
 EHR_in_one = two2one(EHR4patients)
 
-
 #build train and test set
 id_pattern = re.compile('\d+')
 obesity_pattern = re.compile('[NYUQ]')
-test_x_id = []
-test_y = []
+
+test_textual_x_id = []
+test_textual_y = []
 for i in range(5593,6040):					#5593-6040
-	temp_test_x_id = id_pattern.findall(all_test[i])
-	temp_test_y = obesity_pattern.findall(all_test[i])
-	test_x_id.append(temp_test_x_id[0])
-	test_y.append(temp_test_y[0])
+	temp_test_x_id = id_pattern.findall(test_truth[i])
+	temp_test_y = obesity_pattern.findall(test_truth[i])
+	test_textual_x_id.append(temp_test_x_id[0])
+	test_textual_y.append(temp_test_y[0])
+
+test_intui_x_id = []
+test_intui_y = []
 for i in range(13495,13988):					#13495-13988
-	temp_test_x_id = id_pattern.findall(all_test[i])
-	temp_test_y = obesity_pattern.findall(all_test[i])
-	test_x_id.append(temp_test_x_id[0])
-	test_y.append(temp_test_y[0])
+	temp_test_x_id = id_pattern.findall(test_truth[i])
+	temp_test_y = obesity_pattern.findall(test_truth[i])
+	test_intui_x_id.append(temp_test_x_id[0])
+	test_intui_y.append(temp_test_y[0])
 
-train_x_id = []
-train_y = []
+train_textual_x_id = []
+train_textual_y = []
 for i in range(8722,9387):							#8722-9387 in the xml
-	temp_train_x_id = id_pattern.findall(all_train[i])
-	temp_train_y = obesity_pattern.findall(all_train[i])
-	train_x_id.append(temp_train_x_id[0])
-	train_y.append(temp_train_y[0])
+	temp_train_x_id = id_pattern.findall(train_truth[i])
+	temp_train_y = obesity_pattern.findall(train_truth[i])
+	train_textual_x_id.append(temp_train_x_id[0])
+	train_textual_y.append(temp_train_y[0])
+
+train_intui_x_id = []
+train_intui_y = []
 for i in range(20162,20892):							#20162-20892 in the xml
-	temp_train_x_id = id_pattern.findall(all_train[i])
-	temp_train_y = obesity_pattern.findall(all_train[i])
-	train_x_id.append(temp_train_x_id[0])
-	train_y.append(temp_train_y[0])
-
-
-
-#now we have train_x_id --->train_y   and test_x_id  ---> test_y
-train_x = []
-test_x = []
-for id in train_x_id:
-	train_x.append(EHR_in_one[int(id)-1])
-for id in test_x_id:
-	test_x.append(EHR_in_one[int(id)-1])
-print("train set & test set done")
+	temp_train_x_id = id_pattern.findall(train_truth[i])
+	temp_train_y = obesity_pattern.findall(train_truth[i])
+	train_intui_x_id.append(temp_train_x_id[0])
+	train_intui_y.append(temp_train_y[0])
 
 
 # get tfidf score of words
-vectorizer = TfidfVectorizer(min_df=1)
-train_x_tfidf = vectorizer.fit_transform(train_x)
-test_x_tfidf = vectorizer.fit_transform(test_x)
-print(train_x_tfidf.shape, test_x_tfidf.shape)
-
-temp_test_x = test_x_tfidf.toarray()
-temp_test_x = temp_test_x.tolist()
-print(len(temp_test_x),len(temp_test_x[0]))
-for row in temp_test_x:
-	for i in range(28916-22949):
-		row.append(0)
-print(len(temp_test_x),len(temp_test_x[0]))
-test_x_tfidf = scipy.sparse.csr_matrix(temp_test_x)
-
-print(train_x_tfidf.shape, test_x_tfidf.shape)
+vectorizer = TfidfVectorizer(max_df=0.95, min_df=3, max_features = 5000)
+X = vectorizer.fit_transform(EHR_in_one)
 print("tfidf done")
+print(type(X))
+
+
+X = X.toarray()
+print(len(X[0]))
+
+#find those train&test intui&textual in that tfidf matrix
+train_textual_x = []
+train_intui_x = []
+for id in train_textual_x_id:
+	train_textual_x.append(X[int(id)-1])
+for id in train_intui_x_id:
+	train_intui_x.append(X[int(id)-1])
+test_textual_x = []
+test_intui_x = []
+for id in test_textual_x_id:
+	test_textual_x.append(X[int(id)-1])
+for id in test_intui_x_id:
+	test_intui_x.append(X[int(id)-1])
+
+
+print("textual training set size: ",len(train_textual_x),len(train_textual_x[0]))
+print("textual testing set size: ",len(test_textual_x),len(test_textual_x[0]))
+print("intuitive training set size: ",len(train_intui_x),len(train_intui_x[0]))
+print("intuitive testing set size: ",len(test_intui_x),len(test_intui_x[0]))
+print("train set & test set done")
+
+train_textual_x = scipy.sparse.csr_matrix(train_textual_x)
+test_textual_x = scipy.sparse.csr_matrix(test_textual_x)
+train_intui_x = scipy.sparse.csr_matrix(train_intui_x)
+test_intui_x = scipy.sparse.csr_matrix(test_intui_x)
 
 gc.collect()
+
 #training with SVM
 svm_clf = LinearSVC()
-done = svm_clf.fit(train_x_tfidf, train_y)
-print("svm training done")
-print(done)
+textual_training = svm_clf.fit(train_textual_x, train_textual_y)
+textual_pred = svm_clf.predict(test_textual_x)
+print("svm training for textual task done")
 
-print(train_y)
-print(test_y)
-svm_pred = svm_clf.predict(test_x_tfidf)
-print(svm_pred)
+intui_training = svm_clf.fit(train_intui_x, train_intui_y)
+intui_pred = svm_clf.predict(test_intui_x)
+print("svm training for intuitive task done")
+
+#print(intui_pred)
+print("textual accuracy is: ",get_accuracy(textual_pred,test_textual_y))
+print("intuitive accuracy is: ",get_accuracy(intui_pred,test_intui_y))
