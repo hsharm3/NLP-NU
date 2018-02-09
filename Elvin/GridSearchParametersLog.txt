@@ -1,0 +1,18 @@
+17.421337127685547 : clean data ready
+18.893251657485962 : tfidf done
+<class 'scipy.sparse.csr.csr_matrix'>
+5000
+textual training set size:  665 5000
+textual testing set size:  447 5000
+intuitive training set size:  730 5000
+intuitive testing set size:  493 5000
+18.935864686965942 : train set & test set done
+225.0515820980072 : svm training for textual task done
+The parameters of the best model are: 
+{'C': 2, 'degree': 3, 'gamma': 0.5, 'kernel': 'rbf'}
+509.946414232254 : svm training for intuitive task done
+The parameters of the best model are: 
+{'C': 4, 'degree': 3, 'gamma': 0.5, 'kernel': 'rbf'}
+textual accuracy is:  0.7472035794183445
+intuitive accuracy is:  0.7647058823529411
+[Finished in 512.4s]
