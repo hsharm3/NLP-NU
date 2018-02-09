@@ -1,6 +1,10 @@
 #Date: 2/8
 #Version: 1.1
 # Add evaluation metric and also split textual and intuitive classfication
+#1. Changed where tfidf is used. Originally it was for training set. Now we use tfidf for the whole corpus and then select those we need to train out of the matrix.
+#2. Distinguish textual and intuitive task
+#3. Add a simple accuracy as evaluation of performance.
+#4. Changed parameters in tfidf like minimum frequency and maximum of features in a corpus.
 
 import numpy as np  # linear algebra
 import math  
